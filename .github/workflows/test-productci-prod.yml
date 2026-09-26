@@ -1,0 +1,141 @@
+name: Production CI/CD Pipeline (MongoDB + Docker Hub + Healthcheck)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+env:
+  DOCKER_IMAGE_NAME: ${{ secrets.DOCKERHUB_USERNAME || 'thanhthunguyen1462005' }}/product-api
+
+jobs:
+  # ==========================================
+  # JOB 1: CONTINUOUS INTEGRATION (CI)
+  # ==========================================
+  ci-test:
+    name: 1. CI - CRUD & Healthcheck Test with MongoDB
+    runs-on: ubuntu-latest
+
+    # Provision MongoDB service container on GitHub Actions virtual runner
+    services:
+      mongodb:
+        image: mongo:latest
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+          --health-start-period 5s
+
+    steps:
+      - name: 1.1 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 1.2 Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: 1.3 Install Dependencies
+        run: npm ci
+
+      - name: 1.4 Run Automated Integration Tests (CRUD + Healthcheck)
+        env:
+          MONGO_URI: mongodb://localhost:27017/product_testdb
+          NODE_ENV: test
+        run: npm test
+
+      - name: 1.5 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 1.6 Build Docker Image locally for verification
+        run: |
+          docker build -t product-api:ci-test .
+
+      - name: 1.7 Verify Docker Container Healthcheck in CI
+        run: |
+          echo "Starting MongoDB container for Docker healthcheck test..."
+          docker network create ci-test-net
+          docker run -d --name ci-mongo --network ci-test-net mongo:latest
+          
+          echo "Waiting for MongoDB container to initialize..."
+          sleep 5
+
+          echo "Starting product-api container with healthcheck..."
+          docker run -d --name ci-product-api \
+            --network ci-test-net \
+            -p 3000:3000 \
+            -e MONGO_URI=mongodb://ci-mongo:27017/productdb \
+            -e NODE_ENV=production \
+            product-api:ci-test
+
+          echo "Waiting 15 seconds for healthcheck evaluation..."
+          sleep 15
+
+          HEALTH_STATUS=$(docker inspect --format='{{json .State.Health.Status}}' ci-product-api)
+          echo "Container Health Status: $HEALTH_STATUS"
+
+          if [ "$HEALTH_STATUS" != '"healthy"' ]; then
+            echo "Container is not healthy! Checking logs:"
+            docker logs ci-product-api
+            exit 1
+          fi
+
+          echo "Querying /health endpoint inside CI environment..."
+          curl -f http://localhost:3000/health || exit 1
+          echo -e "\nHealthcheck passed successfully!"
+
+          docker rm -f ci-product-api ci-mongo
+          docker network rm ci-test-net
+
+  # ==========================================
+  # JOB 2: CONTINUOUS DEPLOYMENT (CD)
+  # ==========================================
+  cd-dockerhub:
+    name: 2. CD - Build and Push to Docker Hub
+    needs: [ci-test]
+    if: github.ref == 'refs/heads/main' && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 2.1 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: 2.2 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 2.3 Log in to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: 2.4 Extract Metadata (Tags, Labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.DOCKER_IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest
+            type=sha,format=short
+
+      - name: 2.5 Build and Push to Docker Hub
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+
+      - name: 2.6 Deployment Summary
+        run: |
+          echo "=========================================================="
+          echo "CD Succeeded! Image pushed to Docker Hub:"
+          echo "  - ${{ env.DOCKER_IMAGE_NAME }}:latest"
+          echo "  - ${{ env.DOCKER_IMAGE_NAME }}:${{ github.sha }}"
+          echo "=========================================================="
