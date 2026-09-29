@@ -10,40 +10,28 @@ jobs:
   integration-test:
     runs-on: ubuntu-latest
 
+    # Chạy job trực tiếp trong container Node để chung mạng Docker với MongoDB
+    container:
+      image: node:18
+
     services:
       mongodb:
         image: mongo:6.0
-        ports:
-          - 27017:27017
         options: >-
           --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
-          --health-interval 5s
+          --health-interval 10s
           --health-timeout 5s
-          --health-retries 10
+          --health-retries 5
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Setup Node.js environment
-        uses: actions/setup-node@v4
-        with:
-          node-version: 18
-          cache: 'npm'
-
       - name: Install dependencies
         run: npm ci
-
-      - name: Wait for MongoDB port
-        run: |
-          for i in {1..30}; do
-            nc -z 127.0.0.1 27017 && echo "MongoDB is ready on 127.0.0.1:27017" && break
-            echo "Waiting for MongoDB..."
-            sleep 1
-          done
 
       - name: Run Integration Tests
         env:
           NODE_ENV: test
-          MONGO_URI: mongodb://127.0.0.1:27017/productdb_test?directConnection=true
+          MONGO_URI: mongodb://mongodb:27017/productdb_test
         run: npx jest --runInBand --forceExit

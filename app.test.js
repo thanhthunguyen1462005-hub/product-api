@@ -3,13 +3,11 @@ const mongoose = require('mongoose');
 const app = require('./app');
 const Product = require('./models/Product');
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/productdb_test?directConnection=true';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://mongodb:27017/productdb_test';
 
 beforeAll(async () => {
   if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(MONGO_URI, {
-      serverSelectionTimeoutMS: 5000
-    });
+    await mongoose.connect(MONGO_URI);
   }
 }, 30000);
 
