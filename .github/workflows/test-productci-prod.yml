@@ -10,22 +10,20 @@ jobs:
   integration-test:
     runs-on: ubuntu-latest
 
-    # Chạy job trực tiếp trong container Node để chung mạng Docker với MongoDB
-    container:
-      image: node:18
-
-    services:
-      mongodb:
-        image: mongo:6.0
-        options: >-
-          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
-
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Start MongoDB Service
+        uses: supercharge/mongodb-github-action@1.10.0
+        with:
+          mongodb-version: '6.0'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
 
       - name: Install dependencies
         run: npm ci
@@ -33,5 +31,5 @@ jobs:
       - name: Run Integration Tests
         env:
           NODE_ENV: test
-          MONGO_URI: mongodb://mongodb:27017/productdb_test
-        run: npx jest --runInBand --forceExit
+          MONGO_URI: mongodb://127.0.0.1:27017/productdb_test
+        run: npm test
