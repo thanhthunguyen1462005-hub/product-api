@@ -14,10 +14,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Start MongoDB Service
-        uses: supercharge/mongodb-github-action@1.10.0
-        with:
-          mongodb-version: '6.0'
+      - name: Start MongoDB via Docker
+        run: |
+          docker run -d --name mongodb -p 27017:27017 mongo:6.0
+          sleep 5
 
       - name: Setup Node.js
         uses: actions/setup-node@v4

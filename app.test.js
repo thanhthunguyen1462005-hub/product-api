@@ -6,22 +6,16 @@ const Product = require('./models/Product');
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/productdb_test';
 
 beforeAll(async () => {
-  if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(MONGO_URI);
-  }
+  await mongoose.connect(MONGO_URI);
 }, 30000);
 
 afterAll(async () => {
-  if (mongoose.connection.readyState !== 0) {
-    await Product.deleteMany({ pid: 'TEST01' });
-    await mongoose.connection.close();
-  }
+  await Product.deleteMany({ pid: 'TEST01' });
+  await mongoose.connection.close();
 }, 30000);
 
 afterEach(async () => {
-  if (mongoose.connection.readyState !== 0) {
-    await Product.deleteMany({ pid: 'TEST01' });
-  }
+  await Product.deleteMany({ pid: 'TEST01' });
 });
 
 describe('Product API Integration Tests', () => {

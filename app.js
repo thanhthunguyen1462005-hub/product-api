@@ -6,20 +6,6 @@ const Product = require('./models/Product');
 const app = express();
 app.use(express.json());
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/productdb';
-
-// Chỉ kết nối và listen nếu file này được chạy trực tiếp (node app.js), không chạy khi require qua test
-if (require.main === module) {
-  mongoose.connect(MONGO_URI)
-    .then(() => console.log('Successfully connected to MongoDB'))
-    .catch(err => console.error('MongoDB connection error:', err));
-
-  const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
-  });
-}
-
 // Healthcheck endpoint
 app.get('/health', (req, res) => {
   const isHealthy = mongoose.connection.readyState === 1;
@@ -86,5 +72,22 @@ app.delete('/api/products/:pid', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+// CHỈ khởi động server và kết nối DB khi file này được gọi trực tiếp bằng `node app.js`
+if (require.main === module) {
+  const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/productdb';
+  const PORT = process.env.PORT || 3000;
+
+  mongoose.connect(MONGO_URI)
+    .then(() => {
+      console.log('Successfully connected to MongoDB');
+      app.listen(PORT, () => {
+        console.log(`Server is running on port ${PORT}`);
+      });
+    })
+    .catch(err => {
+      console.error('MongoDB connection error:', err);
+    });
+}
 
 module.exports = app;
