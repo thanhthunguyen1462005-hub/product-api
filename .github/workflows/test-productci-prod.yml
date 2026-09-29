@@ -10,14 +10,20 @@ jobs:
   integration-test:
     runs-on: ubuntu-latest
 
+    services:
+      mongodb:
+        image: mongo:6.0
+        ports:
+          - 27017:27017
+        options: >-
+          --health-cmd "mongosh --eval 'db.adminCommand(\"ping\")'"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
-
-      - name: Start MongoDB via Docker
-        run: |
-          docker run -d --name mongodb -p 27017:27017 mongo:6.0
-          sleep 5
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -31,5 +37,5 @@ jobs:
       - name: Run Integration Tests
         env:
           NODE_ENV: test
-          MONGO_URI: mongodb://127.0.0.1:27017/productdb_test
+          MONGO_URI: mongodb://127.0.0.1:27017/productdb_test?directConnection=true
         run: npm test
