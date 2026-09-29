@@ -10,7 +10,6 @@ jobs:
   integration-test:
     runs-on: ubuntu-latest
 
-    # Khởi tạo container MongoDB chạy song song với máy ảo runner
     services:
       mongodb:
         image: mongo:6.0
@@ -38,5 +37,5 @@ jobs:
       - name: Run Integration Tests
         env:
           NODE_ENV: test
-          MONGO_URI: mongodb://localhost:27017/productdb_test
-        run: npm test
+          MONGO_URI: mongodb://127.0.0.1:27017/productdb_test
+        run: npx jest --runInBand --forceExit

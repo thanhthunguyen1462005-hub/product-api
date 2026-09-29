@@ -7,7 +7,10 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/productdb_
 
 beforeAll(async () => {
   if (mongoose.connection.readyState === 0) {
-    await mongoose.connect(MONGO_URI);
+    await mongoose.connect(MONGO_URI, {
+      family: 4,
+      serverSelectionTimeoutMS: 5000
+    });
   }
 }, 30000);
 
