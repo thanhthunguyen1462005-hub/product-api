@@ -6,10 +6,10 @@ const Product = require('./models/Product');
 const app = express();
 app.use(express.json());
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://mongodb:27017/productdb';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/productdb';
 
-// Chỉ app.listen và connect khi không phải chế độ test
-if (process.env.NODE_ENV !== 'test') {
+// Chỉ kết nối và listen nếu file này được chạy trực tiếp (node app.js), không chạy khi require qua test
+if (require.main === module) {
   mongoose.connect(MONGO_URI)
     .then(() => console.log('Successfully connected to MongoDB'))
     .catch(err => console.error('MongoDB connection error:', err));
