@@ -43,6 +43,8 @@ services:
     image: containrrr/watchtower
     container_name: prod-watchtower
     restart: always
+    environment:
+      - DOCKER_API_VERSION=1.44
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     command: --interval 30 --cleanup prod-product-api
