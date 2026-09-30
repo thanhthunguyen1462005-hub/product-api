@@ -1,11 +1,17 @@
-global.crypto = require('crypto').webcrypto;
+// Bắt buộc đặt ở dòng đầu tiên để tránh lỗi Missing driver metadata
+const { webcrypto } = require('node:crypto');
+if (!globalThis.crypto) globalThis.crypto = webcrypto;
+if (!process.versions || !process.versions.node) {
+  process.versions = { ...process.versions, node: '18.16.0' };
+}
+
+process.env.NODE_ENV = 'test';
 
 const request = require('supertest');
 const mongoose = require('mongoose');
 const app = require('./app');
 const Product = require('./models/Product');
 
-// Khi test local, bắt buộc dùng 127.0.0.1 để kết nối vào port 27017 của Docker host
 const MONGO_URI = 'mongodb://127.0.0.1:27017/productdb_test';
 
 beforeAll(async () => {

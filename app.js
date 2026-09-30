@@ -2,6 +2,7 @@ const { webcrypto } = require('node:crypto');
 if (!globalThis.crypto) {
   globalThis.crypto = webcrypto;
 }
+
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -13,7 +14,7 @@ app.use(express.json());
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://mongodb:27017/productdb';
 
-// Route Healthcheck
+// Health check endpoint
 app.get('/health', (req, res) => {
   const isHealthy = mongoose.connection.readyState === 1;
   res.status(isHealthy ? 200 : 503).json({
@@ -23,7 +24,7 @@ app.get('/health', (req, res) => {
   });
 });
 
-// Route CRUD
+// RESTful API endpoints for Product
 app.post('/api/products', async (req, res) => {
   try {
     const product = new Product(req.body);
@@ -54,7 +55,8 @@ app.delete('/api/products/:pid', async (req, res) => {
   }
 });
 
-if (require.main === module) {
+// Chỉ tự động kết nối và lắng nghe cổng khi không phải môi trường test
+if (process.env.NODE_ENV !== 'test' && require.main === module) {
   mongoose.connect(MONGO_URI)
     .then(() => {
       console.log('Successfully connected to MongoDB');
