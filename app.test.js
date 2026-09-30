@@ -5,10 +5,14 @@ const mongoose = require('mongoose');
 const app = require('./app');
 const Product = require('./models/Product');
 
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/productdb_test';
+// Khi test local, bắt buộc dùng 127.0.0.1 để kết nối vào port 27017 của Docker host
+const MONGO_URI = 'mongodb://127.0.0.1:27017/productdb_test';
 
 beforeAll(async () => {
-  await mongoose.connect(MONGO_URI);
+  await mongoose.connect(MONGO_URI, {
+    serverSelectionTimeoutMS: 5000,
+    family: 4
+  });
 }, 30000);
 
 afterAll(async () => {
