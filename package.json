@@ -4,9 +4,9 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-  "start": "node app.js",
-  "test": "jest --testEnvironment=node --runInBand --forceExit"
-},
+    "start": "node app.js",
+    "test": "jest --testEnvironment=node --runInBand --forceExit"
+  },
   "jest": {
     "testEnvironment": "node"
   },

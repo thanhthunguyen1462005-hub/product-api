@@ -38,4 +38,6 @@ jobs:
         env:
           NODE_ENV: test
           MONGO_URI: mongodb://127.0.0.1:27017/productdb_test
-        run: npx jest --testEnvironment=node --runInBand --forceExit
+          # Thêm cờ hỗ trợ VM modules cho Jest
+          NODE_OPTIONS: --experimental-vm-modules
+        run: npm test
