@@ -1,0 +1,57 @@
+services:
+  mongodb:
+    image: mongo:6.0
+    container_name: prod-mongodb
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=productdb
+    volumes:
+      - mongo_prod_data:/data/db
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - prod-network
+
+  api:
+    image: thanhthu1406/product-api:latest
+    container_name: prod-product-api
+    restart: always
+    ports:
+      - "3000:3000"
+    environment:
+      - PORT=3000
+      - MONGO_URI=mongodb://mongodb:27017/productdb
+    depends_on:
+      mongodb:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://localhost:3000/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    networks:
+      - prod-network
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: prod-watchtower
+    restart: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 30 --cleanup prod-product-api
+    networks:
+      - prod-network
+
+volumes:
+  mongo_prod_data:
+
+networks:
+  prod-network:
+    driver: bridge

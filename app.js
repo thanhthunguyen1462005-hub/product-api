@@ -11,7 +11,8 @@ app.get('/health', (req, res) => {
   const isHealthy = mongoose.connection.readyState === 1;
   res.status(isHealthy ? 200 : 503).json({
     status: isHealthy ? 'UP' : 'DOWN',
-    database: isHealthy ? 'connected' : 'disconnected'
+    database: isHealthy ? 'connected' : 'disconnected',
+    version: 'v2.0-auto-cd'
   });
 });
 
