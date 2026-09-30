@@ -1,4 +1,7 @@
-global.crypto = require('crypto').webcrypto;
+const { webcrypto } = require('node:crypto');
+if (!globalThis.crypto) {
+  globalThis.crypto = webcrypto;
+}
 require('dotenv').config();
 const express = require('express');
 const mongoose = require('mongoose');
@@ -8,7 +11,7 @@ const app = express();
 app.use(express.json());
 
 const PORT = process.env.PORT || 3000;
-const MONGO_URI = 'mongodb://127.0.0.1:27017/productdb_test';
+const MONGO_URI = process.env.MONGO_URI || 'mongodb://mongodb:27017/productdb';
 
 // Route Healthcheck
 app.get('/health', (req, res) => {
