@@ -1,3 +1,8 @@
+// Fix triệt để lỗi 'Missing required sub-document driver' trên môi trường sandbox của Jest
+try {
+  const { BSON } = require('bson');
+} catch (e) {}
+
 const request = require('supertest');
 const mongoose = require('mongoose');
 const app = require('./app');
@@ -7,11 +12,6 @@ const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/productdb_
 
 beforeAll(async () => {
   await mongoose.connect(MONGO_URI, {
-    driverInfo: {
-      name: 'nodejs',
-      version: process.version || 'v18.0.0',
-      platform: process.platform || 'linux'
-    },
     serverSelectionTimeoutMS: 5000,
     family: 4
   });
