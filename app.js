@@ -1,9 +1,11 @@
-const { webcrypto } = require('node:crypto');
+// --- BẮT BUỘC ĐẶT Ở DÒNG ĐẦU TIÊN ĐỂ FIX LỖI "crypto is not defined" ---
+const crypto = require('crypto');
 if (!globalThis.crypto) {
-  globalThis.crypto = webcrypto;
+  globalThis.crypto = crypto.webcrypto;
 }
+// -----------------------------------------------------------------------
 
-require('dotenv').config();
+require('dotenv').config({ quiet: true });
 const express = require('express');
 const mongoose = require('mongoose');
 const Product = require('./models/Product');
@@ -11,10 +13,15 @@ const Product = require('./models/Product');
 const app = express();
 app.use(express.json());
 
-const PORT = process.env.PORT || 3000;
-const MONGO_URI = process.env.MONGO_URI || 'mongodb://mongodb:27017/productdb';
+app.use((req, res, next) => {
+  res.on('finish', () => {
+    console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl} - Status: ${res.statusCode}`);
+  });
+  next();
+});
 
-// Health check endpoint
+const PORT = process.env.PORT || 3000;
+
 app.get('/health', (req, res) => {
   const isHealthy = mongoose.connection.readyState === 1;
   res.status(isHealthy ? 200 : 503).json({
@@ -24,7 +31,6 @@ app.get('/health', (req, res) => {
   });
 });
 
-// RESTful API endpoints for Product
 app.post('/api/products', async (req, res) => {
   try {
     const product = new Product(req.body);
@@ -55,14 +61,15 @@ app.delete('/api/products/:pid', async (req, res) => {
   }
 });
 
-// Chỉ tự động kết nối và lắng nghe cổng khi không phải môi trường test
-if (process.env.NODE_ENV !== 'test' && require.main === module) {
+// Chỉ kết nối database khi chạy thật, bỏ qua khi chạy Jest Test
+if (process.env.NODE_ENV !== 'test') {
+  const MONGO_URI = process.env.MONGO_URI || 'mongodb://127.0.0.1:27017/productdb';
   mongoose.connect(MONGO_URI)
     .then(() => {
-      console.log('Successfully connected to MongoDB');
+      console.log('Connected to MongoDB');
       app.listen(PORT, () => console.log(`Server is running on port ${PORT}`));
     })
-    .catch((err) => console.error('MongoDB connection error:', err));
+    .catch(err => console.error('MongoDB connection error:', err));
 }
 
 module.exports = app;
